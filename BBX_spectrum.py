@@ -27,8 +27,8 @@ def graph_char():
     
 
 #Select the desired files 
-path = "*03[8-9].dat"
-path2 = "*04[0-7].dat"
+path = "*00[1-9].dat"
+path2 = "*01[0-2].dat"
 items = glob.glob(path)
 items2 = glob.glob(path2)
 project_files = (items + items2) #Added to a list containing all required files for analysis
@@ -37,10 +37,10 @@ project_files = (items + items2) #Added to a list containing all required files 
 #If Backward scan performed. Need to sort out Index so all data reads the same in script
     
 #os.path.split
-pathname = "C:/Users/oskar/Desktop/My_Scripts/2022-10-12/BBX_HOPG_001.dat"
+#pathname = "C:/Users/oskar/Desktop/My_Scripts/2022-10-12/BBX_HOPG_001.dat"
 
-(dirname, filename) = os.path.split(pathname)
-(shortname, extension) = os.path.splitext(filename)
+#(dirname, filename) = os.path.split(pathname)
+#(shortname, extension) = os.path.splitext(filename)
 
 # =============================================================================
 # metadata = os.stat('BBX_spectrum.py')
@@ -51,7 +51,7 @@ pathname = "C:/Users/oskar/Desktop/My_Scripts/2022-10-12/BBX_HOPG_001.dat"
 
 #Load each file at a time
 my_list=[]
-title_list = []
+#title_list = []
 
 #Define variables
 TC = "Tip Current (A)"
@@ -74,23 +74,41 @@ for file in project_files:
             line_counter += 1
             if r.search(l):
                 break
-            
+              
+        
     #print("Count =", line_counter)   
     df = pd.read_csv(file, delimiter='\t',skiprows = line_counter, usecols=(TC, BB, Hz))
     df[TC] = df[TC] * 10**(9)
     df = df.rename(columns={TC: TCN, BB: KE})
     df[Nm] = (df[Hz] / df[TCN])      #Formating  with subscripts and then divide BBX counts by current to get normalised data
+    
+    #if statement to check the order of the indices 
+    #continue if order runs from low to high
+    #else if runs from high to low, flip indices round and continue with statement.
 
-    my_list.append(df)  #Create a list of Dataframe from multiple CSV files  
-    #df.plot.line(x = KE, y = Nm)
-    #graph_char()
+    min_index = df[KE].idxmin()
+    
+    #Create a list of Dataframe from multiple CSV files  
+    if min_index == 0:
+        my_list.append(df)
+        min_index = df[KE].idxmin()
+        print("Index=", min_index)
+    else:
+        df = df.loc[::-1].reset_index(drop=True)
+        my_list.append(df)
+        min_index = df[KE].idxmin()
+        print("New Index = ", min_index)
+        
+    
+    df.plot.line(x = KE, y = Nm)
+    graph_char()
 
 length = len(my_list)
 average = pd.concat(my_list, axis=1, join="inner")   #Dataframe of all Normalised value
 average = average.T.drop_duplicates().T          #Use DataFrame.drop_duplicates() to Remove Duplicate Columns
 average.drop(([Hz, TCN]), inplace=True, axis=1)
 
-my_list[0].plot.line(x=KE, y=Nm)
+#my_list[0].plot.line(x=KE, y=Nm)
 
 
 def Group():
